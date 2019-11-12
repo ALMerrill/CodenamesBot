@@ -13,22 +13,35 @@ def load_vectors(fname):
         data[tokens[0]] = map(float, tokens[1:])
     return data
 
-class BaselineGuessGiver:
-    def __init__(self, wordlist, my_indices, bad_indices, assassin_index):
+class BaselineHintGiver:
+    def __init__(self, wordlist):
         self.data = load_vectors('/home/bandrus/applications/word_embeddings/fastText/fil9.vec')
 
         with open('top_50k_cleaned.txt') as in_file:
             vocabulary = in_file.readlines()
-        vocabulary = [word.strip().lower() for word in vocabulary if word.strip().lower() not in wordlist]
+        self.vocabulary = [word.strip().lower() for word in vocabulary if word.strip().lower() not in wordlist]
         self.similarities = np.zeros((len(vocabulary), len(wordlist)))
-        self.vocab_vectors = {vocab_word: np.fromiter(self.data[vocab_word], dtype=float) for vocab_word in vocabulary}
+        self.vocab_vectors = {vocab_word: np.fromiter(self.data[vocab_word], dtype=float) for vocab_word in self.vocabulary}
         self.card_vectors = {card_word: np.fromiter(self.data[card_word], dtype=float) for card_word in wordlist}
-        for i, vocab_word in enumerate(vocabulary):
+        for i, vocab_word in enumerate(self.vocabulary):
             for j, card_word in enumerate(wordlist):
                 vocab_vector = self.vocab_vectors[vocab_word]
                 card_vector = self.card_vectors[card_word]
                 self.similarities[i][j] = np.dot(vocab_vector, card_vector)
         print('Calculated all similarities')
+
+    # Not actually good, just wanted to see how well it would behave. Turns out not very well.
+    def give_hint_basic(self, my_indices, bad_indices, assassin_index):
+        word_scores = []
+        for row in self.similarities:
+            score = 0
+            for index in my_indices:
+                score += row[index] ** 2
+            for index in bad_indices:
+                score -= row[index] ** 2
+            score -= 10 * row[assassin_index] ** 2
+            word_scores.append(score)
+        return self.vocabulary[np.argmax(word_scores)]
 
 
 
@@ -45,7 +58,15 @@ def main():
     red_indices = [index for index, color in colormap.items() if color == 'Red']
     assassin_index = [index for index, color in colormap.items() if color == 'Black'][0]
 
-    guessGiver = BaselineGuessGiver(board, blue_indices, red_indices, assassin_index)
+    hintGiver = BaselineHintGiver(board)
+
+    hint = hintGiver.give_hint_basic(blue_indices, red_indices, assassin_index)
+
+    print('Want to guess:', [board[index] for index in blue_indices])
+    print('Don\'t want to guess:', [board[index] for index in red_indices])
+    print('Definitely don\'t want to guess:', board[assassin_index])
+    print('Hint is', hint)
+
 
     end = time.time()
     print(f'Took {end - start} seconds')
