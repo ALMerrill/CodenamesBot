@@ -5,6 +5,11 @@ import io
 import numpy as np
 from scipy import spatial
 
+def softmax(x):
+    """Compute softmax values for each sets of scores in x."""
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum()
+
 def load_vectors(fname):
     fin = io.open(fname, 'r', encoding='utf-8', newline='\n', errors='ignore')
     n, d = map(int, fin.readline().split())
@@ -21,6 +26,7 @@ class BaselineHintGiver:
         with open('top_50k_cleaned.txt') as in_file:
             vocabulary = in_file.readlines()
         self.vocabulary = [word.strip().lower() for word in vocabulary if word.strip().lower() not in wordlist]
+        self.cards = wordlist
         self.similarities = np.zeros((len(vocabulary), len(wordlist)))
         self.vocab_vectors = {vocab_word: np.fromiter(self.data[vocab_word], dtype=float) for vocab_word in self.vocabulary}
         self.card_vectors = {card_word: np.fromiter(self.data[card_word], dtype=float) for card_word in wordlist}
@@ -28,8 +34,7 @@ class BaselineHintGiver:
             for j, card_word in enumerate(wordlist):
                 vocab_vector = self.vocab_vectors[vocab_word]
                 card_vector = self.card_vectors[card_word]
-                # self.similarities[i][j] = np.dot(vocab_vector, card_vector)
-                self.similarities[i][j] = -spatial.distance.cosine(vocab_vector, card_vector)
+                self.similarities[i][j] = np.dot(vocab_vector, card_vector)
         self.std_similarity = np.std(self.similarities)
         print('Calculated all similarities')
 
@@ -84,6 +89,40 @@ class BaselineHintGiver:
         return best_hint, best_number
 
 
+    def give_hint3(self, my_indices, bad_indices, assassin_index):
+        best_hint = ''
+        best_number = 0
+        for i, row in enumerate(self.similarities):
+            probs = softmax(row)
+
+            bad_prob = max([probs[ind] for ind in bad_indices])
+            really_bad_prob = probs[assassin_index]
+
+            good_probs = [(ind, probs[ind]) for ind in my_indices]
+
+            good_hints = len([0 for ind, prob in good_probs if prob >= bad_prob * 2 and prob >= really_bad_prob * 3])
+
+            if good_hints >= 2:
+                print(good_hints)
+
+            # two_bar = 0.4
+            # if np.count_nonzero(probs > two_bar) >= 2:
+            #     print(2, self.vocabulary[i], [self.cards[ind] for ind, prob in enumerate(probs) if prob > two_bar], [prob for prob in probs if prob > two_bar])
+            #
+            # three_bar = 0.20
+            # if np.count_nonzero(probs > three_bar) >= 3:
+            #     print(3, self.vocabulary[i], [self.cards[ind] for ind, prob in enumerate(probs) if prob > three_bar], [prob for prob in probs if prob > three_bar])
+
+            # for j, close_word in enumerate(closest_words):
+            #     if close_word not in my_indices:
+            #         break
+            # if j > best_number:
+            #     best_number = j
+            #     best_hint = self.vocabulary[i]
+            #     print(best_hint, best_number)
+        return best_hint, best_number
+
+
 def main():
     start = time.time()
     with open('shortened_wordlist.txt') as in_file:
@@ -99,18 +138,19 @@ def main():
 
     hintGiver = BaselineHintGiver(board)
 
-    hint = hintGiver.give_hint(blue_indices, red_indices, assassin_index)
-    hint2 = hintGiver.give_hint2(blue_indices, red_indices, assassin_index)
-
-    print('Want to guess:', [board[index] for index in blue_indices])
-    print('Don\'t want to guess:', [board[index] for index in red_indices])
-    print('Definitely don\'t want to guess:', board[assassin_index])
-    print('Hint is', hint)
-    print('Other hint is', hint2)
-
-
-    end = time.time()
-    print(f'Took {end - start} seconds')
+    hintGiver.give_hint3(blue_indices, red_indices, assassin_index)
+    # hint = hintGiver.give_hint(blue_indices, red_indices, assassin_index)
+    # hint2 = hintGiver.give_hint2(blue_indices, red_indices, assassin_index)
+    #
+    # print('Want to guess:', [board[index] for index in blue_indices])
+    # print('Don\'t want to guess:', [board[index] for index in red_indices])
+    # print('Definitely don\'t want to guess:', board[assassin_index])
+    # print('Hint is', hint)
+    # print('Other hint is', hint2)
+    #
+    #
+    # end = time.time()
+    # print(f'Took {end - start} seconds')
 
 if __name__== "__main__":
     main()
