@@ -11,7 +11,7 @@ def main():
 
     board = codenames.getRandomBoard(wordlist)
     board = board.reshape((25))
-    og_board = board[:] # Shallow copy for posterity's sake
+    og_board = board[:] # Keep a shallow copy for reference
     colormap = codenames.getColorMap(board, random.choice(['Blue', 'Red']))
     team_indices = {}
     team_indices['Blue'] = [index for index, color in colormap.items() if color == 'Blue']
@@ -24,22 +24,16 @@ def main():
     whose_turn = 'Blue' if len(team_indices['Blue']) > len(team_indices['Red']) else 'Red'
 
     others_team = 'Blue' if whose_turn == 'Red' else 'Red'
-    print(f'Starting with {whose_turn}s turn and not {others_team}s turn!')
 
     print('Red indices:', team_indices['Red'])
     print('Blue indices:', team_indices['Blue'])
 
-
-    # for i, word in enumerate(og_board):
-    #     print(i, word)
-
     winner = None
     while not winner:
-        hint, num = hint_giver.give_hint3(team_indices[whose_turn], team_indices[others_team], assassin_index)
+        hint, num = hint_giver.give_hint(team_indices[whose_turn], team_indices[others_team], assassin_index)
 
         print(f'Hint for {whose_turn} is {hint}: {num}')
 
-        # print(board, hint, num)
         print(f'Red score: {len(team_indices["Red"])}')
         print(f'Blue score: {len(team_indices["Blue"])}')
         guesses = guesser.guess(board, hint, num)

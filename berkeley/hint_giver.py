@@ -39,21 +39,7 @@ class BaselineHintGiver:
         print('Calculated all similarities')
 
 
-    # Not actually good, just wanted to see how well it would behave. Turns out not very well.
-    def give_hint_basic(self, my_indices, bad_indices, assassin_index):
-        word_scores = []
-        for row in self.similarities:
-            score = 0
-            for index in my_indices:
-                score += row[index] ** 2
-            for index in bad_indices:
-                score -= row[index] ** 2
-            score -= 10 * row[assassin_index] ** 2
-            word_scores.append(score)
-        return self.vocabulary[np.argmax(word_scores)]
-
-
-    def give_hint2(self, my_indices, bad_indices, assassin_index):
+    def give_backup_hint(self, my_indices, bad_indices, assassin_index):
         best_hint = ''
         best_number = 0
         for i, row in enumerate(self.similarities):
@@ -74,21 +60,9 @@ class BaselineHintGiver:
 
         return best_hint, best_number
 
+
+
     def give_hint(self, my_indices, bad_indices, assassin_index):
-        best_hint = ''
-        best_number = 0
-        for i, row in enumerate(self.similarities):
-            closest_words = np.argsort(-row)
-            for j, close_word in enumerate(closest_words):
-                if close_word not in my_indices:
-                    break
-            if j > best_number:
-                best_number = j
-                best_hint = self.vocabulary[i]
-        return best_hint, best_number
-
-
-    def give_hint3(self, my_indices, bad_indices, assassin_index):
         best_hint = ''
         best_number = 0
         possible_hints = []
@@ -123,7 +97,7 @@ class BaselineHintGiver:
 
         if len(possible_hints) == 0:
             print('No great hints, moving to an alternate hint method')
-            return self.give_hint2(my_indices, bad_indices, assassin_index)
+            return self.give_backup_hint(my_indices, bad_indices, assassin_index)
 
         best = np.argmax(possibility_distances)
 
@@ -147,20 +121,12 @@ def main():
 
     hintGiver = BaselineHintGiver(board)
 
-    hint = hintGiver.give_hint3(blue_indices, red_indices, assassin_index)
+    hint = hintGiver.give_hint(blue_indices, red_indices, assassin_index)
 
-    # hint = hintGiver.give_hint(blue_indices, red_indices, assassin_index)
-    # hint2 = hintGiver.give_hint2(blue_indices, red_indices, assassin_index)
-    #
     print('Want to guess:', [board[index] for index in blue_indices])
     print('Don\'t want to guess:', [board[index] for index in red_indices])
     print('Definitely don\'t want to guess:', board[assassin_index])
     print('Hint is', hint)
-    # print('Other hint is', hint2)
-    #
-    #
-    # end = time.time()
-    # print(f'Took {end - start} seconds')
 
 if __name__== "__main__":
     main()
