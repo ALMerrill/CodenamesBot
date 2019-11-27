@@ -15,12 +15,18 @@ class BaselineGuesser:
     def __init__(self):
         self.data = load_vectors('/home/bandrus/applications/word_embeddings/fastText/fil9.vec')
 
+        with open('top_50k_cleaned.txt') as in_file:
+            vocabulary = in_file.readlines()
+        self.vocabulary = [word.strip().lower() for word in vocabulary]
+        self.vocab_vectors = {vocab_word: np.fromiter(self.data[vocab_word], dtype=float) for vocab_word in self.vocabulary}
+
+
 
     def guess(self, options, hint, num):
-        option_vectors = [np.fromiter(self.data[option.lower()], dtype=float) for option in options]
-        hint_vector = np.fromiter(self.data[hint.lower()], dtype=float)
+        option_vectors = [self.vocab_vectors[option.lower()] if option else None for option in options]
+        hint_vector = self.vocab_vectors[hint.lower()]
 
-        similarities = [np.dot(hint_vector, option_vector) for option_vector in option_vectors]
+        similarities = [np.dot(hint_vector, option_vector) if option_vector is not None else 0 for option_vector in option_vectors]
 
         guesses = []
         for i in range(num):

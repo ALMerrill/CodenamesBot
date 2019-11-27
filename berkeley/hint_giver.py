@@ -71,7 +71,6 @@ class BaselineHintGiver:
             if num > best_number:
                 best_number = num
                 best_hint = self.vocabulary[i]
-                print(best_hint, best_number)
 
         return best_hint, best_number
 
@@ -86,7 +85,6 @@ class BaselineHintGiver:
             if j > best_number:
                 best_number = j
                 best_hint = self.vocabulary[i]
-                print(best_hint, best_number)
         return best_hint, best_number
 
 
@@ -123,7 +121,7 @@ class BaselineHintGiver:
                 continue
 
 
-        if len(possible_hints) < 0:
+        if len(possible_hints) == 0:
             print('No great hints, moving to an alternate hint method')
             return self.give_hint2(my_indices, bad_indices, assassin_index)
 

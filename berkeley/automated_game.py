@@ -2,6 +2,7 @@ import codenames
 from hint_giver import BaselineHintGiver
 from guesser import BaselineGuesser
 import random
+import numpy as np
 
 def main():
     with open('shortened_wordlist.txt') as in_file:
@@ -32,33 +33,40 @@ def main():
     # for i, word in enumerate(og_board):
     #     print(i, word)
 
-    game_over = False
-    while not game_over:
+    winner = None
+    while not winner:
         hint, num = hint_giver.give_hint3(team_indices[whose_turn], team_indices[others_team], assassin_index)
 
         print(f'Hint for {whose_turn} is {hint}: {num}')
 
+        # print(board, hint, num)
+        print(f'Red score: {len(team_indices["Red"])}')
+        print(f'Blue score: {len(team_indices["Blue"])}')
         guesses = guesser.guess(board, hint, num)
 
         print(guesses)
 
         for guess in guesses:
             guess_ind = og_board.tolist().index(guess)
-            print(f'Guess {guess} is at index {guess_ind}')
+            board[guess_ind] = ''
             if guess_ind in team_indices[whose_turn]:
-                print('Got it right!')
+                team_indices[whose_turn].remove(guess_ind)
+                continue # only state where they keep guessing
             elif guess_ind == assassin_index:
-                print('Died instantly!')
+                winner = others_team
             elif guess_ind in team_indices[others_team]:
-                print('Helped your enemy')
-            else:
-                print('Got it wrong.')
+                team_indices[others_team].remove(guess_ind)
+            break
 
-        # Adjust, decide if game should be over
+        if not winner:
+            if len(team_indices[whose_turn]) == 0:
+                winner = whose_turn
+            elif len(team_indices[others_team]) == 0:
+                winner = others_team
 
-        # whose_turn, others_team = others_team, whose_turn
+        whose_turn, others_team = others_team, whose_turn
 
-        break
+    print(f'Winner is {winner}')
 
 
 
