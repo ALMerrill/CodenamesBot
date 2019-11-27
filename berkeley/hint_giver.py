@@ -27,7 +27,7 @@ class BaselineHintGiver:
             vocabulary = in_file.readlines()
         self.vocabulary = [word.strip().lower() for word in vocabulary if word.strip().lower() not in wordlist]
         self.cards = wordlist
-        self.similarities = np.zeros((len(vocabulary), len(wordlist)))
+        self.similarities = np.zeros((len(self.vocabulary), len(wordlist)))
         self.vocab_vectors = {vocab_word: np.fromiter(self.data[vocab_word], dtype=float) for vocab_word in self.vocabulary}
         self.card_vectors = {card_word: np.fromiter(self.data[card_word], dtype=float) for card_word in wordlist}
         for i, vocab_word in enumerate(self.vocabulary):
@@ -51,6 +51,7 @@ class BaselineHintGiver:
             score -= 10 * row[assassin_index] ** 2
             word_scores.append(score)
         return self.vocabulary[np.argmax(word_scores)]
+
 
     def give_hint2(self, my_indices, bad_indices, assassin_index):
         best_hint = ''
@@ -92,35 +93,45 @@ class BaselineHintGiver:
     def give_hint3(self, my_indices, bad_indices, assassin_index):
         best_hint = ''
         best_number = 0
+        possible_hints = []
+        possible_numbers = []
+        possibility_distances = []
+        intended_guesses = []
+
         for i, row in enumerate(self.similarities):
             probs = softmax(row)
 
             bad_prob = max([probs[ind] for ind in bad_indices])
             really_bad_prob = probs[assassin_index]
 
-            good_probs = [(ind, probs[ind]) for ind in my_indices]
+            good_probs = [probs[ind] for ind in my_indices]
 
-            good_hints = len([0 for ind, prob in good_probs if prob >= bad_prob * 2 and prob >= really_bad_prob * 3])
+            three_bar = 0.20
+            if np.count_nonzero(np.array(good_probs) > three_bar) >= 3:
+                possible_hints.append(self.vocabulary[i])
+                possible_numbers.append(3)
+                possibility_distances.append(max(row))
+                intended_guesses.append([self.cards[ind] for ind, prob in zip(my_indices, good_probs) if prob > three_bar])
+                continue
 
-            if good_hints >= 2:
-                print(good_hints)
+            two_bar = 0.4
+            if np.count_nonzero(np.array(good_probs) > two_bar) >= 2:
+                possible_hints.append(self.vocabulary[i])
+                possible_numbers.append(2)
+                possibility_distances.append(max(row))
+                intended_guesses.append([self.cards[ind] for ind, prob in zip(my_indices, good_probs) if prob > two_bar])
+                continue
 
-            # two_bar = 0.4
-            # if np.count_nonzero(probs > two_bar) >= 2:
-            #     print(2, self.vocabulary[i], [self.cards[ind] for ind, prob in enumerate(probs) if prob > two_bar], [prob for prob in probs if prob > two_bar])
-            #
-            # three_bar = 0.20
-            # if np.count_nonzero(probs > three_bar) >= 3:
-            #     print(3, self.vocabulary[i], [self.cards[ind] for ind, prob in enumerate(probs) if prob > three_bar], [prob for prob in probs if prob > three_bar])
 
-            # for j, close_word in enumerate(closest_words):
-            #     if close_word not in my_indices:
-            #         break
-            # if j > best_number:
-            #     best_number = j
-            #     best_hint = self.vocabulary[i]
-            #     print(best_hint, best_number)
-        return best_hint, best_number
+        if len(possible_hints) < 0:
+            print('No great hints, moving to an alternate hint method')
+            return self.give_hint2(my_indices, bad_indices, assassin_index)
+
+        best = np.argmax(possibility_distances)
+
+
+        print('Hint giver wants you to guess ', intended_guesses[best])
+        return possible_hints[best], possible_numbers[best]
 
 
 def main():
@@ -138,14 +149,15 @@ def main():
 
     hintGiver = BaselineHintGiver(board)
 
-    hintGiver.give_hint3(blue_indices, red_indices, assassin_index)
+    hint = hintGiver.give_hint3(blue_indices, red_indices, assassin_index)
+
     # hint = hintGiver.give_hint(blue_indices, red_indices, assassin_index)
     # hint2 = hintGiver.give_hint2(blue_indices, red_indices, assassin_index)
     #
-    # print('Want to guess:', [board[index] for index in blue_indices])
-    # print('Don\'t want to guess:', [board[index] for index in red_indices])
-    # print('Definitely don\'t want to guess:', board[assassin_index])
-    # print('Hint is', hint)
+    print('Want to guess:', [board[index] for index in blue_indices])
+    print('Don\'t want to guess:', [board[index] for index in red_indices])
+    print('Definitely don\'t want to guess:', board[assassin_index])
+    print('Hint is', hint)
     # print('Other hint is', hint2)
     #
     #
