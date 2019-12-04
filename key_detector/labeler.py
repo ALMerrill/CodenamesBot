@@ -77,3 +77,19 @@ class Labeler:
         cv2.imshow('test',self.scaled)
         cv2.waitKey(0)
 
+    def relabel(self):
+        with open('labels.csv','rb') as csvfile:
+            reader = csv.reader(csvfile, delimiter=',', quotechar='\'')
+            with open('label2.csv','a') as fd:
+                for i,row in enumerate(reader):
+                    
+                    temp=str(i).zfill(5)
+                    t2=row[1:]
+                    t2=np.array(t2,dtype=int)
+
+                    
+                    
+                    fd.write("{},{}\n".format(temp,np.array2string(t2,separator=',')[1:-1]))
+
+l=Labeler()
+l.relabel()
