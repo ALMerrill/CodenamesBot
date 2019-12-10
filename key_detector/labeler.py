@@ -89,7 +89,12 @@ class Labeler:
 
                     
                     
-                    fd.write("{},{}\n".format(temp,np.array2string(t2,separator=',')[1:-1]))
+                    fd.write("{}.png,{}\n".format(temp,np.array2string(t2,separator=',')[1:-1]))
 
-l=Labeler()
-l.relabel()
+# l=Labeler()
+# l.relabel()
+a=np.array([1,0,1,2,0,0,2,2,2,2,2,1,1,0,1,3,0,2,1,1,0,2,1,0,2])
+print(a[...,None])
+a=(np.arange(a.max()+1) == a[...,None]).astype(int)
+# print(a)
+# print(a.shape)
