@@ -5,10 +5,10 @@ import numpy as np
 import torch
 import torch.optim as optim
 
-new_size = 100
+new_size = 80
 new_vectors_path = f'new-word-vectors/distillation-{new_size}.vec'
-learning_rate = 0.002
-learning_decay = 0.9
+learning_rate = 0.001
+learning_decay = 0.99
 
 OVERFITTING = True
 if OVERFITTING:
@@ -115,31 +115,33 @@ def train_overfit(canonical_vectors, wip_vectors, vocabulary):
     losses = []
     while True:
         iters += 1
-        key_word = np.random.choice(main_words, 1)[0]
-        test_word = np.random.choice(vocabulary, 1)[0]
+
+        for test_word in vocabulary:
+        # key_word = np.random.choice(main_words, 1)[0]
+        # test_word = np.random.choice(vocabulary, 1)[0]
 
         # if test_word in main_words:
         #     continue
 
         # import pdb; pdb.set_trace()
-        optimizer = optim.Adam([new_word_vectors[test_word].requires_grad_()],lr=learning_rate)
-        real_sim = torch.dot(canonical_vectors[key_word], canonical_vectors[test_word])
-        predicted_sim = torch.dot(new_word_vectors[key_word], new_word_vectors[test_word])
+            loss = 0
+            optimizer = optim.Adam([new_word_vectors[test_word].requires_grad_()],lr=learning_rate)
+            for word in main_words:
+                real_sim = torch.dot(canonical_vectors[word], canonical_vectors[test_word])
+                predicted_sim = torch.dot(new_word_vectors[word], new_word_vectors[test_word])
+                loss += torch.abs(real_sim - predicted_sim)
 
-        loss = torch.abs(real_sim - predicted_sim)
+            losses.append(loss.item())
 
-        losses.append(loss.item())
+            loss.backward()
+            optimizer.step()
 
-        loss.backward()
-        optimizer.step()
-
-        if iters % 5000 == 0:
-            learning_rate *= learning_decay
-            print(iters, end=' ')
-            print(learning_rate, end=' ')
-            print(np.mean(losses))
-            losses = []
-            # report_relevant_progress(canonical_vectors, new_word_vectors, vocabulary)
+        learning_rate *= learning_decay
+        print(iters, end=' ')
+        print(learning_rate, end=' ')
+        print(np.mean(losses))
+        losses = []
+                # report_relevant_progress(canonical_vectors, new_word_vectors, vocabulary)
 
 
 
@@ -152,7 +154,7 @@ def main():
         vocabulary = in_file.readlines()
     vocabulary = [word.strip().lower() for word in vocabulary]
     if OVERFITTING:
-        vocabulary = list(set(vocabulary[:200] + main_words))
+        vocabulary = list(set(vocabulary[:200] + main_words)) # 200 works great. 1000 bottomed out around loss==1
     canonical_vectors = {vocab_word: torch.from_numpy(np.fromiter(canonical_data[vocab_word], dtype=float)) for vocab_word in vocabulary}
 
     if path.exists(new_vectors_path):
@@ -160,9 +162,9 @@ def main():
         wip_vectors = {vocab_word: torch.from_numpy(np.fromiter(wip_vectors_data[vocab_word], dtype=float)) for vocab_word in vocabulary}
     else:
         wip_vectors = rand_init_vectors(vocabulary)
-        if new_size == 100:
-            for word in main_words:
-                wip_vectors[word] = canonical_vectors[word].clone().detach()
+        # if new_size == 100:
+        #     for word in main_words:
+        #         wip_vectors[word] = canonical_vectors[word].clone().detach()
 
 
     train_overfit(canonical_vectors, wip_vectors, vocabulary)
